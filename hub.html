@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Хаб игры — PS-Exchange</title>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent-color: #3b82f6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .hub-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .hub-banner {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        h1 {
+            color: var(--text-color);
+            font-size: 2.5rem;
+            margin: 0 0 15px 0;
+        }
+
+        .meta-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: #334155;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+
+        .badge-metacritic {
+            background: #22c55e;
+            color: #fff;
+        }
+
+        .badge-rating {
+            background: #facc15;
+            color: #000;
+        }
+
+        .description {
+            line-height: 1.7;
+            color: #cbd5e1;
+            font-size: 1.1rem;
+            white-space: pre-line;
+            margin-bottom: 40px;
+        }
+
+        .gallery-title {
+            color: #64748b;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 8px;
+            margin-bottom: 20px;
+        }
+
+        .screenshot-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .screenshot-gallery img {
+            width: 100%;
+            height: 170px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+            object-fit: cover;
+        }
+
+        .error-message {
+            text-align: center;
+            font-size: 1.5rem;
+            color: #f87171;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" style="max-width: 1000px; margin: 0 auto;">
+    <a href="index.html" class="back-link">← Вернуться к списку ТОП-100</a>
+
+    <div id="hub-content" class="hub-container">
+        <div style="text-align: center; font-size: 1.5rem; color: #64748b;">Загрузка хаба игры...</div>
+    </div>
+</div>
+
+<script>
+    async function loadHub() {
+        const hubContent = document.getElementById('hub-content');
+
+        // Извлекаем параметр id из URL-строки браузера
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get('id');
+
+        if (!gameId) {
+            hubContent.innerHTML = `<div class="error-message">Ошибка: Не указан ID игры в адресе страницы.</div>`;
+            return;
+        }
+
+        try {
+            // Делаем запрос к нашей серверной функции Vercel
+            const response = await fetch(`/api/game?id=${gameId}`);
+            const gameData = await response.json();
+
+            if (gameData.error) {
+                hubContent.innerHTML = `<div class="error-message">${gameData.error}</div>`;
+                return;
+            }
+
+            // Отрисовываем полноценную страницу хаба
+            hubContent.innerHTML = `
+                <img class="hub-banner" src="${gameData.background_image || ''}" alt="${gameData.name}">
+                <h1>${gameData.name}</h1>
+                
+                <div class="meta-row">
+                    <span class="badge badge-rating">⭐ ${gameData.rating}</span>
+                    <span class="badge badge-metacritic">Metacritic: ${gameData.metacritic || 'N/A'}</span>
+                    <span class="badge">Релиз: ${gameData.released || 'Неизвестно'}</span>
+                </div>
+
+                <h3 class="gallery-title">ОПИСАНИЕ ИГРЫ</h3>
+                <div class="description">${gameData.description || 'Описание отсутствует.'}</div>
+
+                <h3 class="gallery-title">ГАЛЕРЕЯ СКРИНШОТОВ</h3>
+                <div id="hub-gallery" class="screenshot-gallery"></div>
+            `;
+
+            // Наполняем галерею скриншотами
+            const galleryDiv = document.getElementById('hub-gallery');
+            if (gameData.screenshots && gameData.screenshots.length > 0) {
+                gameData.screenshots.forEach(src => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    galleryDiv.appendChild(img);
+                });
+            } else {
+                galleryDiv.innerHTML = '<p style="color: #64748b;">Скриншоты для данной игры отсутствуют.</p>';
+            }
+
+        } catch (error) {
+            hubContent.innerHTML = `<div class="error-message">Ошибка сети при связи с бэкендом.</div>`;
+            console.error('Ошибка загрузки хаба:', error);
+        }
+    }
+
+    // Запускаем сборку хаба при загрузке страницы
+    loadHub();
+</script>
+
+</body>
+</html>

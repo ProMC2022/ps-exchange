@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TOP 100 PS5 Games - Вторичный рынок</title>
+    <title>PS-Exchange — Главная</title>
     <link href="https://googleapis.com" rel="stylesheet">
     <style>
         :root {
@@ -51,7 +51,9 @@
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             border: 1px solid #334155;
-            position: relative;
+            text-decoration: none; /* Убираем подчеркивание ссылки */
+            color: inherit;
+            display: block;
         }
 
         .game-card:hover {
@@ -125,13 +127,8 @@
 
     async function fetchGames() {
         try {
-            // Безопасный запрос к НАШЕЙ серверной функции Vercel вместо чужого API напрямую
             const response = await fetch('/api/games');
-            
-            if (!response.ok) {
-                throw new Error('Ошибка ответа сервера');
-            }
-            
+            if (!response.ok) throw new Error('Ошибка ответа сервера');
             const allGames = await response.json();
             
             if (allGames.error) {
@@ -141,28 +138,29 @@
 
             renderGames(allGames);
         } catch (error) {
-            gamesGrid.innerHTML = `<div class="loading">Ошибка загрузки данных. Проверьте логи сервера Vercel.</div>`;
+            gamesGrid.innerHTML = `<div class="loading">Ошибка загрузки данных. Проверьте логи сервера.</div>`;
             console.error('Error fetching games:', error);
         }
     }
 
     function calculateUsedPrice(rating, title) {
-        // Имитация цены б/у рынка
         const basePrice = 2000;
         const ratingBonus = rating * 100; 
         const randomFluctuation = Math.floor(Math.random() * 500);
-        
         return (basePrice + ratingBonus + randomFluctuation).toLocaleString('ru-RU') + ' ₽';
     }
 
     function renderGames(games) {
-        gamesGrid.innerHTML = ''; // Очистка анимации загрузки
+        gamesGrid.innerHTML = ''; 
 
         games.forEach((game, index) => {
             const price = calculateUsedPrice(game.rating, game.name);
             
-            const card = document.createElement('div');
+            // Вместо тега div используем ссылку <a href="hub.html?id=...">
+            const card = document.createElement('a');
             card.className = 'game-card';
+            card.href = `hub.html?id=${game.id}`;
+            
             card.innerHTML = `
                 <img src="${game.background_image || 'https://placeholder.com'}" alt="${game.name}">
                 <div class="game-info">
@@ -177,7 +175,6 @@
         });
     }
 
-    // Запуск приложения
     fetchGames();
 </script>
 
