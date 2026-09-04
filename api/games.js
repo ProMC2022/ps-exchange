@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     let allGames = [];
     for (let page = 1; page <= 5; page++) {
       const response = await fetch(
-        `https://rawg.io{apiKey}&platforms=187&ordering=-rating&page=${page}&page_size=20`
+        `https://api.rawg.io/api/games?key=${apiKey}&platforms=187&ordering=-rating&page=${page}&page_size=20`
       );
       const data = await response.json();
       if (data.results) {
