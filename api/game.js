@@ -13,15 +13,34 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Не указан ID игры" });
     }
 
-    // Собираем ссылку через обычные кавычки и плюсы, чтобы исключить опечатки с кавычкой "Ё"
-    const urlMain = "https://rawg.io" + id + "?key=" + apiKey;
+    // 1. ЗАПРОС ОСНОВНЫХ ДАННЫХ ИГРЫ
+    const urlMain = "https://api.rawg.io/api/games/" + id + "?key=" + apiKey;
     const mainResponse = await fetch(urlMain);
+    
+    if (!mainResponse.ok) {
+      return res.status(mainResponse.status).json({ 
+        error: "RAWG API вернул ошибку " + mainResponse.status + " для игры ID " + id 
+      });
+    }
+    
     const mainData = await mainResponse.json();
 
-    // Собираем вторую ссылку для скриншотов
-    const urlScreens = "https://rawg.io" + id + "/screenshots?key=" + apiKey;
-    const screenshotsResponse = await fetch(urlScreens);
-    const screenshotsData = await screenshotsResponse.json();
+    // 2. ИЗОЛИРОВАННЫЙ БЕЗОПАСНЫЙ ЗАПРОС СКРИНШОТОВ (Оборачиваем в отдельный try-catch)
+    let screenshots = [];
+    try {
+      const urlScreens = "https://api.rawg.io/api/games/" + id + "/screenshots?key=" + apiKey;
+      const screenshotsResponse = await fetch(urlScreens);
+      
+      if (screenshotsResponse.ok) {
+        const screenshotsData = await screenshotsResponse.json();
+        if (screenshotsData.results) {
+          screenshots = screenshotsData.results.map(s => s.image);
+        }
+      }
+    } catch (screenError) {
+      console.error("Не удалось догрузить скриншоты:", screenError);
+      // Не падаем, массив screenshots просто остается пустым []
+    }
 
     // Формируем чистый объект для фронтенда
     const fullGameData = {
@@ -34,13 +53,13 @@ export default async function handler(req, res) {
       metacritic: mainData.metacritic,
       developers: mainData.developers ? mainData.developers.map(d => d.name) : [],
       genres: mainData.genres ? mainData.genres.map(g => g.name) : [],
-      screenshots: screenshotsData.results ? screenshotsData.results.map(s => s.image) : []
+      screenshots: screenshots // Подставится либо массив картинок, либо пустой []
     };
 
     return res.status(200).json(fullGameData);
 
   } catch (error) {
-    console.error("Ошибка на сервере:", error);
-    return res.status(500).json({ error: "Ошибка при получении детальных данных игры" });
+    console.error("Глобальная ошибка на сервере:", error);
+    return res.status(500).json({ error: "Глобальный сбой сервера при сборке данных" });
   }
 }
